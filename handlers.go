@@ -13,8 +13,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/yourusername/api-sentinel/internal/analytics"
-	"github.com/yourusername/api-sentinel/internal/logger"
+"github.com/P-r-a-n-a-v-N/API-Sentinel-Project/analytics"
+"github.com/P-r-a-n-a-v-N/API-Sentinel-Project/logger"
 )
 
 // Handler holds dependencies for the API handlers.
