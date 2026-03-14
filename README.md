@@ -8,6 +8,32 @@ A production-grade, lightweight API Gateway with dynamic rate-limiting and stati
 
 ---
 
+
+
+# API Sentinel
+Author: Pranav N
+
+What is this?
+API Sentinel is a lightweight, smart "traffic cop" for web applications.
+
+When you build a website or an app, people (and bots) send requests to your server to load data. If too many requests come in at once, your server can crash. If bad actors try to scrape your data, they can slow everything down.
+
+API Sentinel sits right in front of your main server and checks every single request before letting it through.
+
+Core Features
+The Router (Reverse Proxy): It takes incoming requests and safely passes them to the right place behind the scenes.
+
+The Bouncer (Rate Limiting): It keeps track of who is asking for data. If a single user asks for too much too quickly, Sentinel tells them to slow down, protecting the server from being overwhelmed.
+
+The Detective (Anomaly Detection): Instead of just counting requests, it looks for weird traffic patterns. If a bot is trying to sneakily download all your data, Sentinel spots the unusual behavior and blocks it.
+
+Why I built this ?
+Most beginner projects just read and write data to a database. I built API Sentinel to understand how the internet actually handles heavy traffic. This project tackles real-world problems like server security, managing multiple connections at once, and using fast data structures to make decisions in milliseconds.
+
+
+---
+
+
 ## Architecture
 
 ```
