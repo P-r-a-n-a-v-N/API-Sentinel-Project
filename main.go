@@ -21,14 +21,14 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/yourusername/api-sentinel/internal/analytics"
-	apihandler "github.com/yourusername/api-sentinel/internal/api"
-	"github.com/yourusername/api-sentinel/internal/anomaly"
-	"github.com/yourusername/api-sentinel/internal/config"
-	"github.com/yourusername/api-sentinel/internal/logger"
-	"github.com/yourusername/api-sentinel/internal/middleware"
-	"github.com/yourusername/api-sentinel/internal/proxy"
-	"github.com/yourusername/api-sentinel/internal/ratelimit"
+	"github.com/P-r-a-n-a-v-N/API-Sentinel-Project/internal/analytics"
+	apihandler "github.com/yourusername/API-Sentinel-Project/internal/api"
+	"github.com/P-r-a-n-a-v-N/API-Sentinel-Project/internal/anomaly"
+	"github.com/P-r-a-n-a-v-N/API-Sentinel-Project/internal/config"
+	"github.com/P-r-a-n-a-v-N/API-Sentinel-Project/internal/logger"
+	"github.com/P-r-a-n-a-v-N/API-Sentinel-Project/internal/middleware"
+	"github.com/P-r-a-n-a-v-N/API-Sentinel-Project/internal/proxy"
+	"github.com/P-r-a-n-a-v-N/API-Sentinel-Project/internal/ratelimit"
 )
 
 func main() {
