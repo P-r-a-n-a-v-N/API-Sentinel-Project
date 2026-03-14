@@ -1,0 +1,159 @@
+##############################################################################
+# API Sentinel — docker-compose.yml
+#
+# Services:
+#   redis     — State store for rate limiting (Token Bucket buckets)
+#   gateway   — Go reverse proxy with rate limiting + anomaly detection
+#   dashboard — React + Nginx observability dashboard
+#
+# Usage:
+#   # Start the full stack (add -d to background)
+#   docker-compose up --build
+#
+#   # Start only backend services (no dashboard)
+#   docker-compose up --build redis gateway
+#
+#   # Tear down and remove volumes
+#   docker-compose down -v
+#
+# Port map:
+#   localhost:8080  → gateway API + health endpoint
+#   localhost:3000  → dashboard (Nginx)
+#   localhost:6379  → Redis (only exposed in dev; remove in production)
+#
+# All services use restart: unless-stopped so the stack recovers
+# automatically after a machine reboot or container crash.
+##############################################################################
+
+version: "3.9"
+
+# ── Shared network ────────────────────────────────────────────────────────────
+# Services communicate over an isolated bridge network.
+# Only gateway:8080 and dashboard:80 are published to the host.
+networks:
+  sentinel-net:
+    driver: bridge
+
+# ── Named volumes ─────────────────────────────────────────────────────────────
+volumes:
+  redis-data:
+    driver: local
+
+services:
+
+  # ── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7.2-alpine
+    container_name: sentinel-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --save 60 1
+      --loglevel warning
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    networks:
+      - sentinel-net
+    ports:
+      # Expose Redis to the host only in development.
+      # Remove this in production; the gateway reaches it via sentinel-net.
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  # ── Gateway ──────────────────────────────────────────────────────────────────
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    container_name: sentinel-gateway
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      # Gateway config — override via .env or environment-specific compose overrides
+      GATEWAY_PORT:      "8080"
+      UPSTREAM_URL:      "${UPSTREAM_URL:-http://dummy-backend:9000}"
+      LOG_LEVEL:         "${LOG_LEVEL:-info}"
+      READ_TIMEOUT_SEC:  "${READ_TIMEOUT_SEC:-10}"
+      WRITE_TIMEOUT_SEC: "${WRITE_TIMEOUT_SEC:-10}"
+      IDLE_TIMEOUT_SEC:  "${IDLE_TIMEOUT_SEC:-60}"
+
+      # Redis
+      REDIS_ADDR:     "redis:6379"
+      REDIS_PASSWORD: "${REDIS_PASSWORD:-}"
+
+      # Rate limiting
+      RATE_LIMIT_RPS:   "${RATE_LIMIT_RPS:-100}"
+      RATE_LIMIT_BURST: "${RATE_LIMIT_BURST:-200}"
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    networks:
+      - sentinel-net
+    healthcheck:
+      test: ["/gateway", "-health-check"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Dummy Backend (dev only) ─────────────────────────────────────────────────
+  # A lightweight upstream that simulates a real API service.
+  # Remove or replace this in production.
+  dummy-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dummy
+    container_name: sentinel-dummy-backend
+    restart: unless-stopped
+    environment:
+      DUMMY_PORT: "9000"
+    networks:
+      - sentinel-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9000/"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # ── Dashboard ────────────────────────────────────────────────────────────────
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+      args:
+        # Point the dashboard's API calls at the gateway.
+        # In production replace with your public gateway domain.
+        VITE_API_URL: "${VITE_API_URL:-http://localhost:8080}"
+    container_name: sentinel-dashboard
+    restart: unless-stopped
+    depends_on:
+      gateway:
+        condition: service_healthy
+    ports:
+      - "${DASHBOARD_PORT:-3000}:80"
+    networks:
+      - sentinel-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health.txt"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
