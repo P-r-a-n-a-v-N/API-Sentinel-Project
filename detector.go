@@ -30,7 +30,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yourusername/api-sentinel/internal/logger"
+	"github.com/P-r-a-n-a-v-N/API-Sentinel-Project"
 )
 
 // Config holds tuning parameters for the anomaly detector.
